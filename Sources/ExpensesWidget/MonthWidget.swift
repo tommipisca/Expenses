@@ -391,7 +391,7 @@ struct AccessoryCircularView: View {
             ZStack {
                 AccessoryWidgetBackground()
                 if let summary, !summary.slices.isEmpty {
-                    WidgetRing(slices: summary.slices, lineWidth: 5, background: .clear)
+                    WidgetRing(slices: summary.slices, lineWidth: 5)
                 }
                 Text(WidgetFormat.compact(summary?.totalCents ?? 0))
                     .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -442,7 +442,8 @@ struct AccessoryInlineView: View {
 struct WidgetRing: View {
     let slices: [TagSlice]
     let lineWidth: CGFloat
-    var background: Color = WidgetTheme.surface
+    /// Nessun binario sotto le fette: si vede lo sfondo del widget, qualunque sia.
+    var background: Color = .clear
     var gapDegrees: Double = 4
 
     var body: some View {
@@ -452,7 +453,8 @@ struct WidgetRing: View {
             // Ogni estremo arrotondato sporge di metà spessore: si accorcia la fetta di altrettanto.
             let inset = slices.count > 1 ? Double(lineWidth / 2) / circumference + gapDegrees / 720 : 0
             ZStack {
-                Circle().stroke(background, lineWidth: lineWidth)
+                // Mese senza spese: un cerchio appena accennato, trasparente sullo sfondo.
+                Circle().stroke(slices.isEmpty ? Color.white.opacity(0.08) : background, lineWidth: lineWidth)
                 ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                     let from = segment.start + inset
                     Circle()
