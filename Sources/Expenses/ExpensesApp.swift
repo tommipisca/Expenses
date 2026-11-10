@@ -1,15 +1,28 @@
 import SwiftUI
+import UIKit
 import ExpensesCore
 
 @main
 struct ExpensesApp: App {
+    @State private var store = ExpenseStore(fileURL: AppGroup.dataFileURL())
+    @State private var router = AppRouter()
+
+    init() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Theme.surface)
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                Color(red: 0x0E / 255, green: 0x11 / 255, blue: 0x17 / 255).ignoresSafeArea()
-                Text("Expenses").foregroundStyle(.white)
-            }
-            .preferredColorScheme(.dark)
+            RootView()
+                .environment(store)
+                .environment(router)
+                .preferredColorScheme(.dark)
+                .tint(Theme.accent)
+                .onOpenURL { router.handle($0) }
         }
     }
 }
