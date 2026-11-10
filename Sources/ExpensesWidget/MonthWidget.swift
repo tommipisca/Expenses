@@ -314,15 +314,17 @@ struct ExtraLargeView: View {
     var body: some View {
         HStack(spacing: 24) {
             ZStack {
-                WidgetRing(slices: summary.slices, lineWidth: 26)
+                WidgetRing(slices: summary.slices, lineWidth: 34)
                 VStack(spacing: 4) {
                     Text(WidgetFormat.monthName(summary.month).capitalized)
                         .font(.system(.headline, design: .rounded, weight: .semibold))
                         .foregroundStyle(WidgetTheme.textSecondary)
-                    AmountText(cents: summary.totalCents, size: 34)
+                    AmountText(cents: summary.totalCents, size: 30)
                 }
-                .padding(.horizontal, 48)
+                .padding(.horizontal, 56)
             }
+            // Più margine dai bordi del widget: l'anello resta più piccolo e respira.
+            .padding(18)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Rectangle().fill(Color(hex: Palette.stroke)).frame(width: 1)
