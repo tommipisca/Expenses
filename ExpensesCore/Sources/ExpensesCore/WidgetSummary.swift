@@ -39,3 +39,18 @@ public struct WidgetSummary: Codable, Equatable, Sendable {
         return try? StoreCoding.decoder().decode(WidgetSummary.self, from: data)
     }
 }
+
+extension WidgetSummary {
+    /// Il riepilogo da mostrare a una certa data: se nel frattempo è iniziato un nuovo mese
+    /// (e l'app non è stata aperta), il mese nuovo parte da zero con lo stesso budget.
+    public func displayed(at date: Date, calendar: Calendar) -> WidgetSummary {
+        let month = MonthKey(date: date, calendar: calendar)
+        guard month != self.month else { return self }
+        let budget = monthlyBudget.map { BudgetStatus(target: $0.target, limitCents: $0.limitCents, spentCents: 0) }
+        return WidgetSummary(month: month, totalCents: 0, slices: [], monthlyBudget: budget, generatedAt: generatedAt)
+    }
+
+    public static func startOfNextMonth(after date: Date, calendar: Calendar) -> Date {
+        MonthKey(date: date, calendar: calendar).adding(months: 1).start(calendar: calendar)
+    }
+}
