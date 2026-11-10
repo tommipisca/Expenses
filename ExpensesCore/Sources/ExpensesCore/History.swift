@@ -67,3 +67,12 @@ public func availableYears(expenses: [Expense], calendar: Calendar) -> [Int] {
 func normalizedForSearch(_ text: String) -> String {
     text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "it_IT"))
 }
+
+/// Mesi con almeno una spesa (nell'anno scelto), dal più recente: le voci del menu "Mese" dello storico.
+public func availableMonths(expenses: [Expense], year: YearFilter, calendar: Calendar) -> [MonthKey] {
+    let months = Set(expenses.map { MonthKey(date: $0.date, calendar: calendar) })
+    return months.filter { month in
+        if case .year(let wanted) = year { month.year == wanted } else { true }
+    }
+    .sorted(by: >)
+}

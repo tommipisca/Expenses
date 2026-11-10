@@ -64,3 +64,19 @@ import Testing
         #expect(availableYears(expenses: expenses, calendar: rome) == [2026, 2025])
     }
 }
+
+@Suite struct AvailableMonthsTests {
+    let expenses = [
+        Expense(amountCents: 1, date: date(2026, 11, 9)), Expense(amountCents: 1, date: date(2026, 11, 2)),
+        Expense(amountCents: 1, date: date(2026, 9, 1)), Expense(amountCents: 1, date: date(2025, 12, 20)),
+    ]
+
+    @Test func monthsOfOneYearDescending() {
+        #expect(availableMonths(expenses: expenses, year: .year(2026), calendar: rome)
+                == [MonthKey(year: 2026, month: 11), MonthKey(year: 2026, month: 9)])
+    }
+
+    @Test func allYears() {
+        #expect(availableMonths(expenses: expenses, year: .all, calendar: rome).count == 3)
+    }
+}

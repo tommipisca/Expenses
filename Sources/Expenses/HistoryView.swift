@@ -72,14 +72,11 @@ struct HistoryView: View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    if let month = query.month {
-                        FilterChip(title: Formatting.monthTitle(month), systemImage: "xmark", colorIndex: nil, selected: true) {
-                            query.month = nil
-                        }
-                    }
+                    monthMenu
                     ForEach(availableYears(expenses: store.expenses, calendar: .current), id: \.self) { year in
                         FilterChip(title: String(year), colorIndex: nil, selected: query.year == .year(year)) {
                             query.year = .year(year)
+                            if let month = query.month, month.year != year { query.month = nil }
                         }
                     }
                     FilterChip(title: "Tutti", colorIndex: nil, selected: query.year == .all) { query.year = .all }
@@ -96,6 +93,33 @@ struct HistoryView: View {
             }
             .scrollIndicators(.hidden)
         }
+    }
+
+    /// Menu per filtrare un mese (dell'anno scelto); con un mese attivo mostra il mese e una x per toglierlo.
+    private var monthMenu: some View {
+        Menu {
+            if query.month != nil {
+                Button("Tutti i mesi", systemImage: "xmark") { query.month = nil }
+            }
+            ForEach(availableMonths(expenses: store.expenses, year: query.year, calendar: .current)) { month in
+                Button(Formatting.monthTitle(month)) {
+                    query.month = month
+                    if query.year != .all { query.year = .year(month.year) }
+                }
+            }
+        } label: {
+            let selected = query.month != nil
+            HStack(spacing: 6) {
+                Image(systemName: "calendar").font(.caption)
+                Text(query.month.map(Formatting.monthTitle) ?? "Mese").font(.subheadline.weight(.medium))
+                Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+            }
+            .padding(.horizontal, 12).frame(height: 34)
+            .background(selected ? Theme.accent.opacity(0.16) : Theme.surface, in: Capsule())
+            .overlay(Capsule().stroke(selected ? Theme.accent : Theme.stroke, lineWidth: 1))
+            .foregroundStyle(selected ? Theme.textPrimary : Theme.textSecondary)
+        }
+        .accessibilityLabel(query.month.map { "Mese: \(Formatting.monthTitle($0))" } ?? "Filtra per mese")
     }
 
     private func tagChip(id: UUID?, name: String, colorIndex: Int?) -> some View {
