@@ -72,8 +72,8 @@ import Testing
         store.deleteTag(id: tag.id)
         #expect(store.tags.isEmpty)
         #expect(store.expenses.count == 1)
-        #expect(store.expenses[0].tagID == nil)
-        #expect(store.recurring[0].tagID == nil)
+        #expect(store.tag(id: store.expenses[0].tagID) == nil)
+        #expect(store.tag(id: store.recurring[0].tagID) == nil)
         #expect(store.data.deletions[tag.id.uuidString] != nil)
     }
 
@@ -83,7 +83,7 @@ import Testing
         store.addExpense(expense)
         store.deleteExpense(id: expense.id)
         #expect(store.expenses.isEmpty)
-        #expect(store.data.deletions[expense.id.uuidString] == date(2026, 11, 10, 15))
+        #expect(store.data.deletions[expense.id.uuidString] == date(2026, 11, 10, 15).addingTimeInterval(1))
     }
 
     @Test func modificationStampsAlwaysIncrease() {

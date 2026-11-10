@@ -66,7 +66,7 @@ import Testing
         #expect(expense.source == .recurring)
         #expect(expense.recurringID == r.id)
         #expect(expense.date == date(2026, 11, 1))
-        #expect(expense.modifiedAt == date(2026, 11, 10, 8, 0))
+        #expect(expense.modifiedAt == nil)
     }
 
     @Test func sameOccurrenceSameIDAcrossDevices() {

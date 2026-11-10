@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var budgetText = ""
     @State private var editingRule: RuleSheet?
     @State private var copied = false
+    @FocusState private var budgetFocused: Bool
 
     struct RuleSheet: Identifiable {
         let id = UUID()
@@ -27,6 +28,7 @@ struct SettingsView: View {
             .navigationTitle("Impostazioni")
             .sheet(item: $editingRule) { sheet in RecurringFormView(rule: sheet.rule) }
             .onAppear { budgetText = store.settings.monthlyBudgetCents.map(Formatting.editableAmount) ?? "" }
+            .onDisappear(perform: commitBudget)
         }
     }
 
@@ -59,8 +61,16 @@ struct SettingsView: View {
                     Spacer()
                     TextField("0,00", text: $budgetText)
                         .keyboardType(.decimalPad).multilineTextAlignment(.trailing).monospacedDigit()
-                        .onSubmit(commitBudget)
-                        .onChange(of: budgetText) { commitBudget() }
+                        .focused($budgetFocused)
+                        // Si salva quando il campo perde il focus, non a ogni cifra: i valori
+                        // intermedi (es. "2" scrivendo "2000") farebbero partire avvisi falsi.
+                        .onChange(of: budgetFocused) { _, focused in if !focused { commitBudget() } }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Fine") { budgetFocused = false }
+                            }
+                        }
                     Text("€").foregroundStyle(Theme.textSecondary)
                 }
             }

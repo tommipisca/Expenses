@@ -51,7 +51,8 @@ public func occurrenceID(recurringID: UUID, date: Date, calendar: Calendar) -> U
 }
 
 /// Genera le spese periodiche dovute. `lastGeneratedDate` avanza anche sulle occorrenze già presenti
-/// o eliminate, che non vengono ricreate. Il `modifiedAt` della regola non cambia, così non sovrascrive
+/// o eliminate, che non vengono ricreate. Le spese generate non hanno `modifiedAt`: così una modifica
+/// o un'eliminazione fatta dall'utente su un altro dispositivo vince sempre su una rigenerazione. Il `modifiedAt` della regola non cambia, così non sovrascrive
 /// in sync una modifica fatta dall'utente sull'altro dispositivo.
 public func generateDue(rules: [RecurringExpense], deletedIDs: Set<UUID>, existingIDs: Set<UUID>,
                         now: Date, calendar: Calendar) -> (expenses: [Expense], updatedRules: [RecurringExpense]) {
@@ -64,7 +65,7 @@ public func generateDue(rules: [RecurringExpense], deletedIDs: Set<UUID>, existi
             guard !deletedIDs.contains(id), !existingIDs.contains(id) else { continue }
             expenses.append(Expense(id: id, amountCents: rule.amountCents, date: date, tagID: rule.tagID,
                                     merchant: rule.merchant, note: rule.note, source: .recurring,
-                                    recurringID: rule.id, modifiedAt: now.roundedToSecond))
+                                    recurringID: rule.id, modifiedAt: nil))
         }
         if let last = dates.last { rule.lastGeneratedDate = last }
         updated.append(rule)

@@ -120,15 +120,29 @@ public struct SyncSnapshot: Codable, Equatable, Sendable {
     }
 }
 
+extension SyncSnapshot {
+    init(stored: StoredData) {
+        self.init(expenses: stored.expenses, tags: stored.tags, recurring: stored.recurring, settings: stored.settings,
+                  deletions: stored.deletions, sentAlerts: stored.sentAlerts)
+    }
+}
+
+extension StoredData {
+    init(snapshot: SyncSnapshot) {
+        self.init(expenses: snapshot.expenses, tags: snapshot.tags, recurring: snapshot.recurring,
+                  settings: snapshot.settings, deletions: snapshot.deletions, sentAlerts: snapshot.sentAlerts)
+    }
+}
+
 extension ExpenseStore {
     public func snapshot() -> SyncSnapshot {
-        SyncSnapshot(expenses: data.expenses, tags: data.tags, recurring: data.recurring, settings: data.settings,
-                     deletions: data.deletions, sentAlerts: data.sentAlerts)
+        SyncSnapshot(stored: data)
     }
 
-    /// Applica il risultato di un'unione; non salva se non cambia nulla.
+    /// Applica il risultato di un'unione, unendolo di nuovo ai dati attuali: le modifiche fatte
+    /// mentre la sincronizzazione era in corso non vanno perse. Non salva se non cambia nulla.
     public func applySynced(_ snapshot: SyncSnapshot) {
-        replaceData(StoredData(expenses: snapshot.expenses, tags: snapshot.tags, recurring: snapshot.recurring,
-                               settings: snapshot.settings, deletions: snapshot.deletions, sentAlerts: snapshot.sentAlerts))
+        let merged = SyncSnapshot.merge(local: self.snapshot(), remote: snapshot)
+        replaceData(StoredData(snapshot: merged))
     }
 }

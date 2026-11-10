@@ -58,7 +58,32 @@ public enum AppGroup {
                 NSLog("Expenses: spostamento dei dati nell'App Group fallito (%@)", String(describing: error))
                 return documentsFile
             }
+        } else if fileManager.fileExists(atPath: groupFile.path), fileManager.fileExists(atPath: documentsFile.path) {
+            mergeDocuments(documentsFile, into: groupFile)
         }
         return groupFile
+    }
+
+    /// Dati in entrambi i posti (per esempio un'installazione fatta senza App Group dopo una con il gruppo):
+    /// si uniscono nel gruppo e il file di Documents viene messo da parte, mai cancellato.
+    static func mergeDocuments(_ documentsFile: URL, into groupFile: URL) {
+        let decoder = StoreCoding.decoder()
+        guard let documentsData = try? Data(contentsOf: documentsFile),
+              let groupData = try? Data(contentsOf: groupFile),
+              let fromDocuments = try? decoder.decode(StoredData.self, from: documentsData),
+              let fromGroup = try? decoder.decode(StoredData.self, from: groupData) else {
+            NSLog("Expenses: impossibile unire i dati di Documents con quelli dell'App Group")
+            return
+        }
+        let merged = SyncSnapshot.merge(local: SyncSnapshot(stored: fromGroup), remote: SyncSnapshot(stored: fromDocuments))
+        do {
+            try StoreCoding.encoder().encode(StoredData(snapshot: merged)).write(to: groupFile, options: .atomic)
+            let stamp = Int(Date().timeIntervalSince1970)
+            let setAside = documentsFile.deletingLastPathComponent().appendingPathComponent("expenses.merged-\(stamp).json")
+            try FileManager.default.moveItem(at: documentsFile, to: setAside)
+            NSLog("Expenses: dati di Documents uniti a quelli dell'App Group")
+        } catch {
+            NSLog("Expenses: unione dei dati di Documents fallita (%@)", String(describing: error))
+        }
     }
 }

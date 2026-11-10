@@ -82,6 +82,7 @@ struct RecurringFormView: View {
                 .listRowBackground(Theme.surface)
             }
             .themedListBackground()
+            .onAppear { if store.tag(id: tagID) == nil { tagID = nil } }
             .navigationTitle(original == nil ? "Spesa periodica" : "Modifica periodica")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -117,7 +118,10 @@ struct RecurringFormView: View {
 
     private func prepareSave() {
         guard let rule = makeRule() else { return }
-        let count = occurrenceDates(of: rule, through: .now, calendar: .current).count
+        // Arretrate = prima di oggi: l'occorrenza di oggi è normale, non serve conferma.
+        let today = Calendar.current.startOfDay(for: .now)
+        let normalizedRule = { var r = rule; r.startDate = Calendar.current.startOfDay(for: r.startDate); return r }()
+        let count = occurrenceDates(of: normalizedRule, through: today.addingTimeInterval(-1), calendar: .current).count
         if count > 0 { pendingCount = count } else { save() }
     }
 

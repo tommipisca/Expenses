@@ -138,8 +138,9 @@ public final class ExpenseStore {
     }
 
     public func deleteExpense(id: UUID) {
+        let previous = data.expenses.first { $0.id == id }?.modifiedAt
         data.expenses.removeAll { $0.id == id }
-        data.deletions[id.uuidString] = timestamp()
+        data.deletions[id.uuidString] = stamp(after: previous)
         save()
     }
 
@@ -169,25 +170,19 @@ public final class ExpenseStore {
         updateTag(tag)
     }
 
-    /// Elimina il tag: le spese (e le spese periodiche) restano, senza tag.
+    /// Elimina il tag. Le spese e le spese periodiche non vengono riscritte (una modifica fatta intanto
+    /// su un altro dispositivo non andrebbe persa): un tag che non esiste più vale ovunque "Senza tag".
     public func deleteTag(id: UUID) {
+        let previous = tag(id: id)?.modifiedAt
         data.tags.removeAll { $0.id == id }
-        for index in data.expenses.indices where data.expenses[index].tagID == id {
-            data.expenses[index].tagID = nil
-            data.expenses[index].modifiedAt = stamp(after: data.expenses[index].modifiedAt)
-        }
-        for index in data.recurring.indices where data.recurring[index].tagID == id {
-            data.recurring[index].tagID = nil
-            data.recurring[index].modifiedAt = stamp(after: data.recurring[index].modifiedAt)
-        }
-        data.deletions[id.uuidString] = timestamp()
+        data.deletions[id.uuidString] = stamp(after: previous)
         save()
     }
 
     // MARK: Spese periodiche
 
     public func addRecurring(_ rule: RecurringExpense) {
-        var rule = rule
+        var rule = normalized(rule)
         rule.modifiedAt = stamp(after: nil)
         data.recurring.append(rule)
         save()
@@ -195,7 +190,7 @@ public final class ExpenseStore {
 
     public func updateRecurring(_ rule: RecurringExpense) {
         guard let index = data.recurring.firstIndex(where: { $0.id == rule.id }) else { return }
-        var rule = rule
+        var rule = normalized(rule)
         rule.modifiedAt = stamp(after: data.recurring[index].modifiedAt)
         data.recurring[index] = rule
         save()
@@ -209,8 +204,9 @@ public final class ExpenseStore {
     }
 
     public func deleteRecurring(id: UUID) {
+        let previous = data.recurring.first { $0.id == id }?.modifiedAt
         data.recurring.removeAll { $0.id == id }
-        data.deletions[id.uuidString] = timestamp()
+        data.deletions[id.uuidString] = stamp(after: previous)
         save()
     }
 
@@ -271,6 +267,17 @@ public final class ExpenseStore {
     /// anche se l'orologio dell'altro dispositivo era avanti.
     private func stamp(after previous: Date?) -> Date {
         max(timestamp(), (previous ?? .distantPast).addingTimeInterval(1))
+    }
+
+    /// Spese periodiche a inizio giornata (dovute dalla mezzanotte), fine fino all'ultimo secondo del giorno.
+    private func normalized(_ rule: RecurringExpense) -> RecurringExpense {
+        var rule = rule
+        rule.startDate = calendar.startOfDay(for: rule.startDate)
+        if let end = rule.endDate {
+            let nextDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: end))!
+            rule.endDate = nextDay.addingTimeInterval(-1)
+        }
+        return rule
     }
 
     private func normalizedMerchant(_ text: String) -> String {

@@ -62,9 +62,8 @@ struct ExpensesApp: App {
 
     /// All'apertura e al ritorno in primo piano: spese periodiche dovute, dati dell'altro dispositivo, avvisi, widget.
     private func refresh() async {
-        store.generateDueRecurring()
+        // Prima la sincronizzazione: le regole sospese o eliminate sull'altro dispositivo non generano nulla.
         await sync.sync(store: store)
-        // Le spese periodiche arrivate dalla sync potrebbero richiederne altre (regole create sull'altro dispositivo).
         store.generateDueRecurring()
         await afterChange()
     }
