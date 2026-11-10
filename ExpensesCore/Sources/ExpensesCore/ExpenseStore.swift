@@ -242,6 +242,7 @@ public final class ExpenseStore {
     public func writeWidgetSummary(to url: URL) {
         let month = currentMonth
         let summary = WidgetSummary.make(summary: summary(for: month), statuses: budgetStatuses(for: month),
+                                         tags: data.tags, expenses: data.expenses, calendar: calendar,
                                          generatedAt: timestamp())
         do {
             try StoreCoding.encoder().encode(summary).write(to: url, options: .atomic)

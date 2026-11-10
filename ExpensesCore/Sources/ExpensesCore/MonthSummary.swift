@@ -19,7 +19,7 @@ public struct TagSlice: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-public struct Comparison: Hashable, Sendable {
+public struct Comparison: Hashable, Codable, Sendable {
     public var previousMonth: MonthKey
     public var previousCents: Int
     public var percentChange: Int
