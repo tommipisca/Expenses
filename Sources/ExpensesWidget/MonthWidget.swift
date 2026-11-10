@@ -438,22 +438,35 @@ struct AccessoryInlineView: View {
     }
 }
 
+/// Anello come nell'app: estremi arrotondati e spazio tra le fette.
 struct WidgetRing: View {
     let slices: [TagSlice]
     let lineWidth: CGFloat
     var background: Color = WidgetTheme.surface
+    var gapDegrees: Double = 4
 
     var body: some View {
-        ZStack {
-            Circle().stroke(background, lineWidth: lineWidth)
-            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                Circle()
-                    .trim(from: segment.start, to: max(segment.start, segment.end - (slices.count > 1 ? 0.012 : 0)))
-                    .stroke(WidgetTheme.tagColor(segment.colorIndex), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
-                    .rotationEffect(.degrees(-90))
+        GeometryReader { proxy in
+            let diameter = min(proxy.size.width, proxy.size.height)
+            let circumference = Double.pi * Double(max(diameter - lineWidth, 1))
+            // Ogni estremo arrotondato sporge di metà spessore: si accorcia la fetta di altrettanto.
+            let inset = slices.count > 1 ? Double(lineWidth / 2) / circumference + gapDegrees / 720 : 0
+            ZStack {
+                Circle().stroke(background, lineWidth: lineWidth)
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    let from = segment.start + inset
+                    Circle()
+                        .trim(from: from, to: max(from, segment.end - inset))
+                        .stroke(WidgetTheme.tagColor(segment.colorIndex),
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: slices.count > 1 ? .round : .butt))
+                        .rotationEffect(.degrees(-90))
+                }
             }
+            .padding(lineWidth / 2)
+            .frame(width: diameter, height: diameter)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(lineWidth / 2)
+        .aspectRatio(1, contentMode: .fit)
     }
 
     private var segments: [(start: Double, end: Double, colorIndex: Int?)] {
