@@ -306,71 +306,82 @@ struct LargeView: View {
     }
 }
 
-/// Solo iPad: a sinistra anello e tag, a destra ultime spese e budget.
+/// Solo iPad: a sinistra solo l'anello grande con mese e totale; a destra, in alto le ultime spese
+/// e in basso i tag su cui si è speso di più, ciascuno con le sole righe che ci stanno.
 struct ExtraLargeView: View {
     let summary: WidgetSummary
+
     var body: some View {
-        HStack(alignment: .top, spacing: 24) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 18) {
-                    ZStack {
-                        WidgetRing(slices: summary.slices, lineWidth: 16)
-                        AmountText(cents: summary.totalCents, size: 18).padding(.horizontal, 22)
-                    }
-                    .frame(width: 150, height: 150)
-                    VStack(alignment: .leading, spacing: 4) {
-                        SectionTitle(text: WidgetFormat.monthName(summary.month).capitalized)
-                        Text("\(summary.count) \(summary.count == 1 ? "spesa" : "spese")")
-                            .font(.footnote).foregroundStyle(WidgetTheme.textSecondary)
-                        if let comparison = summary.comparison { ComparisonText(comparison: comparison) }
-                    }
+        HStack(spacing: 24) {
+            ZStack {
+                WidgetRing(slices: summary.slices, lineWidth: 26)
+                VStack(spacing: 4) {
+                    Text(WidgetFormat.monthName(summary.month).capitalized)
+                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(WidgetTheme.textSecondary)
+                    AmountText(cents: summary.totalCents, size: 34)
                 }
-                Rectangle().fill(Color(hex: Palette.stroke)).frame(height: 1)
-                VStack(spacing: 9) { ForEach(summary.slices) { SliceRow(slice: $0) } }
-                Spacer(minLength: 0)
+                .padding(.horizontal, 48)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Rectangle().fill(Color(hex: Palette.stroke)).frame(width: 1)
 
-            VStack(alignment: .leading, spacing: 12) {
-                SectionTitle(text: "Ultime spese")
-                if summary.recent.isEmpty {
-                    Text("Nessuna spesa questo mese").font(.footnote).foregroundStyle(WidgetTheme.textSecondary)
-                }
-                ForEach(Array(summary.recent.enumerated()), id: \.offset) { _, expense in
+            VStack(spacing: 14) {
+                FittingList(title: "Ultime spese", emptyText: "Nessuna spesa questo mese",
+                            items: Array(summary.recent.enumerated())) { _, expense in
                     HStack(spacing: 8) {
-                        Circle().fill(WidgetTheme.tagColor(expense.colorIndex)).frame(width: 7, height: 7)
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(expense.title).font(.caption.weight(.medium)).lineLimit(1)
-                            Text(WidgetFormat.shortDate(expense.date)).font(.caption2).foregroundStyle(WidgetTheme.textSecondary)
-                        }
+                        Circle().fill(WidgetTheme.tagColor(expense.colorIndex)).frame(width: 8, height: 8)
+                        Text(expense.title).font(.subheadline.weight(.medium)).lineLimit(1)
+                        Text(WidgetFormat.shortDate(expense.date)).font(.caption).foregroundStyle(WidgetTheme.textSecondary)
                         Spacer(minLength: 4)
-                        Text(Money.format(expense.cents)).font(.system(.caption, design: .rounded).weight(.semibold))
+                        Text(Money.format(expense.cents)).font(.system(.subheadline, design: .rounded).weight(.semibold))
                             .monospacedDigit()
                     }
                 }
-                Spacer(minLength: 0)
-                if summary.monthlyBudget != nil || !summary.tagBudgets.isEmpty {
-                    SectionTitle(text: "Budget")
-                    if let budget = summary.monthlyBudget { MonthlyBudgetLine(budget: budget) }
-                    ForEach(Array(summary.tagBudgets.prefix(3).enumerated()), id: \.offset) { _, line in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Circle().fill(WidgetTheme.tagColor(line.colorIndex)).frame(width: 7, height: 7)
-                                Text(line.name).font(.caption2.weight(.semibold)).lineLimit(1)
-                                Spacer()
-                                Text("\(Money.format(line.status.spentCents)) di \(Money.format(line.status.limitCents))")
-                                    .font(.caption2).foregroundStyle(WidgetTheme.textSecondary).monospacedDigit()
-                            }
-                            BudgetBar(fraction: line.status.fraction)
-                        }
+                Rectangle().fill(Color(hex: Palette.stroke)).frame(height: 1)
+                FittingList(title: "Per tag", emptyText: "Nessuna spesa questo mese",
+                            items: Array(summary.slices.filter { $0.id != WidgetSummary.otherID }.enumerated())) { _, slice in
+                    HStack(spacing: 8) {
+                        Circle().fill(WidgetTheme.tagColor(slice.colorIndex)).frame(width: 8, height: 8)
+                        Text(slice.name).font(.subheadline.weight(.medium)).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(WidgetFormat.percent(slice.fraction)).font(.caption).foregroundStyle(WidgetTheme.textSecondary)
+                        Text(Money.format(slice.cents)).font(.system(.subheadline, design: .rounded).weight(.semibold))
+                            .monospacedDigit()
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+/// Titolo e righe a altezza fissa: mostra solo le prime righe che entrano nello spazio disponibile.
+struct FittingList<Item, Row: View>: View {
+    let title: String
+    let emptyText: String
+    let items: [Item]
+    @ViewBuilder let row: (Item) -> Row
+    private let rowHeight: CGFloat = 26
+    private let spacing: CGFloat = 6
+    private let titleHeight: CGFloat = 20
+
+    var body: some View {
+        GeometryReader { proxy in
+            let available = proxy.size.height - titleHeight - spacing
+            let fitting = max(0, Int((available + spacing) / (rowHeight + spacing)))
+            VStack(alignment: .leading, spacing: spacing) {
+                SectionTitle(text: title).frame(height: titleHeight, alignment: .leading)
+                if items.isEmpty {
+                    Text(emptyText).font(.footnote).foregroundStyle(WidgetTheme.textSecondary)
+                }
+                ForEach(0..<min(fitting, items.count), id: \.self) { index in
+                    row(items[index]).frame(height: rowHeight)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
     }
 }
 
