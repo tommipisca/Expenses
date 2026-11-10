@@ -1,0 +1,11 @@
+version: 1
+bundleID: com.Tommaso.Expenses
+product: Expenses
+infoPath: App-Info.plist
+entitlementsPath: App.entitlements
+iconPath: AppIcon.png
+extensions:
+  - product: ExpensesWidget
+    bundleID: com.Tommaso.Expenses.Widget
+    infoPath: Widget-Info.plist
+    entitlementsPath: App.entitlements
