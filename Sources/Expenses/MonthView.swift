@@ -162,7 +162,8 @@ struct MonthView: View {
 
     private func emptyState(_ shown: MonthKey) -> some View {
         ZStack {
-            Circle().stroke(Theme.surface, lineWidth: 26).padding(13)
+            // Mese senza spese: un cerchio appena accennato, trasparente sullo sfondo (come nel widget).
+            Circle().stroke(Color.white.opacity(0.08), lineWidth: 26).padding(13)
             VStack(spacing: 6) {
                 amountText(0, size: 36)
                 Text("Nessuna spesa a \(Formatting.monthName(shown))")

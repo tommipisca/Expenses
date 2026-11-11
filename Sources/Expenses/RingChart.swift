@@ -16,7 +16,7 @@ struct RingChart: View {
             // Ogni estremo arrotondato sporge di metà spessore: si accorcia la fetta di altrettanto.
             let inset = Double(lineWidth / 2) / circumference + gapDegrees / 720
             ZStack {
-                Circle().stroke(Theme.surface, lineWidth: lineWidth)
+                // Nessun binario sotto le fette: tra una fetta e l'altra si vede lo sfondo, senza distacco.
                 ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                     let from = segment.start + (slices.count > 1 ? inset : 0)
                     let to = max(from, segment.end - (slices.count > 1 ? inset : 0))
