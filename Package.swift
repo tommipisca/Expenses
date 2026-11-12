@@ -24,7 +24,10 @@ let package = Package(
         ),
         .target(
             name: "ExpensesWidget",
-            dependencies: [.product(name: "ExpensesCore", package: "ExpensesCore")]
+            dependencies: [.product(name: "ExpensesCore", package: "ExpensesCore")],
+            // Swift 6.4: il linker usa -e _NSExtensionMain e -dead_strip e scarta _main
+            // (e con lui tutto il codice del widget). Lo teniamo esplicitamente.
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-u", "-Xlinker", "_main"])]
         ),
     ]
 )
