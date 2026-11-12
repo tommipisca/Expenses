@@ -128,6 +128,35 @@ public final class ExpenseStore {
         save()
     }
 
+    /// Spese arrivate da Wallet e non ancora controllate, dalla più recente.
+    public var pendingReview: [Expense] {
+        data.expenses.filter(\.needsReview).sorted { $0.date > $1.date }
+    }
+
+    /// Salva una spesa da Wallet senza passare dal modulo. Un importo non in euro resta a 0 e finisce nella nota;
+    /// il tag è quello usato l'ultima volta con lo stesso esercente.
+    @discardableResult
+    public func addPendingExpense(amountText: String?, merchant: String?, date: Date) -> Expense {
+        let rawAmount = amountText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = merchant?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var cents = 0
+        var note: String?
+        if !rawAmount.isEmpty {
+            if case .euros(let value) = readAmount(rawAmount) { cents = value } else { note = "Importo da Wallet: \(rawAmount)" }
+        }
+        let expense = Expense(amountCents: cents, date: date, tagID: name.isEmpty ? nil : suggestedTagID(forMerchant: name),
+                              merchant: name.isEmpty ? nil : name, note: note, source: .wallet, needsReview: true)
+        addExpense(expense)
+        return data.expenses.last ?? expense
+    }
+
+    /// Salva le modifiche e toglie la spesa da quelle da confermare.
+    public func confirmExpense(_ expense: Expense) {
+        var expense = expense
+        expense.needsReview = false
+        updateExpense(expense)
+    }
+
     public func updateExpense(_ expense: Expense) {
         guard let index = data.expenses.firstIndex(where: { $0.id == expense.id }) else { return }
         var expense = expense

@@ -176,6 +176,7 @@ struct ExpenseRow: View {
 
     private func details(tag: ExpensesCore.Tag?) -> String {
         var parts = [tag?.name ?? TagSlice.untaggedName, Formatting.shortDate(expense.date)]
+        if expense.needsReview { parts.insert("Da confermare", at: 0) }
         switch expense.source {
         case .wallet: parts.append("Wallet")
         case .recurring: parts.append("Periodica")

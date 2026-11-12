@@ -53,6 +53,7 @@ struct RootView: View {
         TabView(selection: $router.tab) {
             MonthView()
                 .tabItem { Label("Mese", systemImage: "chart.pie.fill") }
+                .badge(store.pendingReview.count)
                 .tag(AppTab.month)
             HistoryView()
                 .tabItem { Label("Storico", systemImage: "list.bullet") }

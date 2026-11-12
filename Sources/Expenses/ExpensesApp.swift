@@ -1,17 +1,44 @@
 import SwiftUI
+import AppIntents
 import UIKit
 import WidgetKit
 import ExpensesCore
 
+/// Un solo archivio per processo: lo usano sia l'interfaccia sia le azioni di Comandi Rapidi,
+/// che girano nello stesso processo (anche con l'app in background).
+@MainActor
+enum SharedStore {
+    static let store = ExpenseStore(fileURL: AppGroup.dataFileURL())
+}
+
+/// Dopo una modifica: avvisi di budget e widget.
+@MainActor
+enum AppRefresh {
+    static func afterChange(store: ExpenseStore, notifier: BudgetNotifier) async {
+        await notifier.evaluate(store: store)
+        if let container = AppGroup.containerURL {
+            store.writeWidgetSummary(to: container.appendingPathComponent(WidgetSummary.fileName))
+        } else {
+            store.writeWidgetSummary(to: AppGroup.dataFileURL().deletingLastPathComponent()
+                .appendingPathComponent(WidgetSummary.fileName))
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
 @main
 struct ExpensesApp: App {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var store = ExpenseStore(fileURL: AppGroup.dataFileURL())
+    @State private var store = SharedStore.store
     @State private var router = AppRouter()
     @State private var sync = SyncService()
     @State private var notifier = BudgetNotifier()
 
     init() {
+        // Il linker (-dead_strip) elimina i tipi che nessuno richiama: senza questo riferimento
+        // Comandi Rapidi trova l'azione ma l'app non sa crearla ("errore interno").
+        let intents: [any AppIntent.Type] = [AddExpenseIntent.self]
+        if ProcessInfo.processInfo.environment["EXPENSES_LIST_INTENTS"] != nil { print(intents) }
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(Theme.surface)
@@ -69,13 +96,6 @@ struct ExpensesApp: App {
     }
 
     private func afterChange() async {
-        await notifier.evaluate(store: store)
-        if let container = AppGroup.containerURL {
-            store.writeWidgetSummary(to: container.appendingPathComponent(WidgetSummary.fileName))
-        } else {
-            store.writeWidgetSummary(to: AppGroup.dataFileURL().deletingLastPathComponent()
-                .appendingPathComponent(WidgetSummary.fileName))
-        }
-        WidgetCenter.shared.reloadAllTimelines()
+        await AppRefresh.afterChange(store: store, notifier: notifier)
     }
 }

@@ -7,6 +7,8 @@ struct ExpenseFormView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let original: Expense?
+    /// Spesa salvata dall'automazione senza aprire l'app: si conferma da qui.
+    private let reviewing: Bool
     private let fromWallet: Bool
     private let card: String?
     private let amountWarning: String?
@@ -25,8 +27,9 @@ struct ExpenseFormView: View {
 
     init(sheet: ExpenseSheet) {
         original = sheet.expense
+        reviewing = sheet.expense?.needsReview == true
         let prefill = sheet.prefill
-        fromWallet = prefill != nil
+        fromWallet = prefill != nil || reviewing
         card = prefill?.card
         var amount = ""
         var warning: String?
@@ -37,7 +40,13 @@ struct ExpenseFormView: View {
         case .unreadable: warning = "Importo non leggibile: inseriscilo a mano"
         case nil: break
         }
-        if let expense = sheet.expense { amount = Formatting.editableAmount(expense.amountCents) }
+        if let expense = sheet.expense {
+            if expense.needsReview, expense.amountCents == 0 {
+                warning = "Importo non arrivato in euro: inseriscilo a mano"
+            } else {
+                amount = Formatting.editableAmount(expense.amountCents)
+            }
+        }
         amountWarning = warning
         _amountText = State(initialValue: amount)
         _merchant = State(initialValue: sheet.expense?.merchant ?? prefill?.merchant ?? "")
@@ -56,7 +65,9 @@ struct ExpenseFormView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     if fromWallet {
-                        Label("Compilata da Wallet" + (card.map { " · \($0)" } ?? ""), systemImage: "creditcard")
+                        Label(reviewing ? "Salvata da Wallet · da confermare"
+                                        : "Compilata da Wallet" + (card.map { " · \($0)" } ?? ""),
+                              systemImage: "creditcard")
                             .font(.caption)
                             .foregroundStyle(Color(hex: 0x38BDF8))
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -78,12 +89,12 @@ struct ExpenseFormView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle(original == nil ? "Nuova spesa" : "Modifica spesa")
+            .navigationTitle(reviewing ? "Conferma spesa" : original == nil ? "Nuova spesa" : "Modifica spesa")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Salva") { save() }.fontWeight(.semibold).disabled(cents == nil)
+                    Button(reviewing ? "Conferma" : "Salva") { save() }.fontWeight(.semibold).disabled(cents == nil)
                 }
             }
             .alert("Nuovo tag", isPresented: $showingNewTag) {
@@ -227,7 +238,7 @@ struct ExpenseFormView: View {
             expense.tagID = tagID
             expense.merchant = trimmedMerchant.isEmpty ? nil : trimmedMerchant
             expense.note = trimmedNote.isEmpty ? nil : trimmedNote
-            store.updateExpense(expense)
+            if reviewing { store.confirmExpense(expense) } else { store.updateExpense(expense) }
         } else {
             store.addExpense(Expense(amountCents: cents, date: date, tagID: tagID,
                                      merchant: trimmedMerchant.isEmpty ? nil : trimmedMerchant,

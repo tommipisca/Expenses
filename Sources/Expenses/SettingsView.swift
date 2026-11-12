@@ -138,11 +138,13 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 step(1, "Apri Comandi Rapidi › Automazione › Nuova automazione › Transazione.")
                 step(2, "Scegli le carte e seleziona «Esegui immediatamente».")
-                step(3, "Aggiungi l'azione «URL» con il link qui sotto, sostituendo i segnaposto con le variabili Importo, Esercente e Carta.")
-                step(4, "Aggiungi l'azione «Apri URL». Dopo ogni pagamento si aprirà il modulo già compilato: scegli il tag e salva.")
+                step(3, "Aggiungi l'azione «Aggiungi spesa» di Expenses e collega Importo ed Esercente alle variabili della transazione.")
+                step(4, "Dopo ogni pagamento la spesa si salva senza aprire l'app, anche a telefono bloccato, e compare in «Da confermare» nella schermata Mese.")
             }
             .padding(.vertical, 4)
             VStack(alignment: .leading, spacing: 8) {
+                Text("In alternativa, per aprire subito il modulo compilato, usa l'azione «Apri URL» con questo link, sostituendo ogni segnaposto (parentesi comprese) con la variabile.")
+                    .font(.footnote).foregroundStyle(Theme.textSecondary)
                 Text(AddExpenseLink.example).font(.footnote.monospaced()).textSelection(.enabled)
                 Button(copied ? "Copiato" : "Copia link", systemImage: copied ? "checkmark" : "doc.on.doc") {
                     UIPasteboard.general.string = AddExpenseLink.example
@@ -152,7 +154,7 @@ struct SettingsView: View {
         } header: {
             Text("Pagamenti con Wallet").sectionHeaderStyle()
         } footer: {
-            Text("Per pagamenti in altre valute o rimborsi il modulo si apre con l'importo vuoto: inseriscilo tu in euro.")
+            Text("Per pagamenti in altre valute o rimborsi l'importo resta vuoto: lo inserisci tu in euro quando confermi la spesa.")
         }
         .listRowBackground(Theme.surface)
     }

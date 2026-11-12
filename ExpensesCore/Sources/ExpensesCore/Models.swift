@@ -14,9 +14,12 @@ public struct Expense: Codable, Identifiable, Hashable, Sendable {
     public var source: ExpenseSource
     public var recurringID: UUID?
     public var modifiedAt: Date?
+    /// Salvata dall'automazione di Wallet senza aprire l'app: compare tra le spese da confermare.
+    public var needsReview: Bool
 
     public init(id: UUID = UUID(), amountCents: Int, date: Date, tagID: UUID? = nil, merchant: String? = nil,
-                note: String? = nil, source: ExpenseSource = .manual, recurringID: UUID? = nil, modifiedAt: Date? = nil) {
+                note: String? = nil, source: ExpenseSource = .manual, recurringID: UUID? = nil, modifiedAt: Date? = nil,
+                needsReview: Bool = false) {
         self.id = id
         self.amountCents = amountCents
         self.date = date
@@ -26,6 +29,7 @@ public struct Expense: Codable, Identifiable, Hashable, Sendable {
         self.source = source
         self.recurringID = recurringID
         self.modifiedAt = modifiedAt
+        self.needsReview = needsReview
     }
 
     public init(from decoder: Decoder) throws {
@@ -39,6 +43,7 @@ public struct Expense: Codable, Identifiable, Hashable, Sendable {
         source = try c.decodeIfPresent(ExpenseSource.self, forKey: .source) ?? .manual
         recurringID = try c.decodeIfPresent(UUID.self, forKey: .recurringID)
         modifiedAt = try c.decodeIfPresent(Date.self, forKey: .modifiedAt)
+        needsReview = try c.decodeIfPresent(Bool.self, forKey: .needsReview) ?? false
     }
 }
 

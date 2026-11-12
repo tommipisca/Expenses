@@ -24,6 +24,9 @@ struct MonthView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     header(shown)
+                    if !store.pendingReview.isEmpty {
+                        pendingSection(store.pendingReview)
+                    }
                     if summary.count == 0 {
                         emptyState(shown)
                     } else if style == .ring {
@@ -172,6 +175,34 @@ struct MonthView: View {
         }
         .frame(maxWidth: 260)
         .aspectRatio(1, contentMode: .fit)
+    }
+
+    /// Spese salvate dall'automazione di Wallet senza aprire l'app: si toccano per controllarle e confermarle.
+    private func pendingSection(_ pending: [Expense]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Da confermare", systemImage: "checkmark.circle.badge.questionmark")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.warning)
+                Spacer()
+                Text("\(pending.count)").font(.caption.weight(.semibold)).foregroundStyle(Theme.textSecondary)
+            }
+            VStack(spacing: 4) {
+                ForEach(pending) { expense in
+                    Button { router.edit(expense) } label: {
+                        HStack {
+                            ExpenseRow(expense: expense)
+                            Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Apre la spesa per controllarla e confermarla")
+                }
+            }
+        }
+        .card()
     }
 
     private func totalBudgetCard(_ status: BudgetStatus) -> some View {
