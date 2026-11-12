@@ -50,7 +50,25 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var router = router
-        TabView(selection: $router.tab) {
+        GeometryReader { proxy in
+            tabs($router.tab)
+                .environment(\.isWideLayout, proxy.size.width >= WideLayout.minWidth)
+        }
+        .sheet(item: $router.expenseSheet) { sheet in
+            ExpenseFormView(sheet: sheet)
+        }
+        .alert("Attenzione", isPresented: Binding(
+            get: { store.lastError != nil },
+            set: { if !$0 { store.lastError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(store.lastError?.message ?? "")
+        }
+    }
+
+    private func tabs(_ selection: Binding<AppTab>) -> some View {
+        TabView(selection: selection) {
             MonthView()
                 .tabItem { Label("Mese", systemImage: "chart.pie.fill") }
                 .badge(store.pendingReview.count)
@@ -64,17 +82,6 @@ struct RootView: View {
             SettingsView()
                 .tabItem { Label("Impostazioni", systemImage: "gearshape.fill") }
                 .tag(AppTab.settings)
-        }
-        .sheet(item: $router.expenseSheet) { sheet in
-            ExpenseFormView(sheet: sheet)
-        }
-        .alert("Attenzione", isPresented: Binding(
-            get: { store.lastError != nil },
-            set: { if !$0 { store.lastError = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(store.lastError?.message ?? "")
         }
     }
 }

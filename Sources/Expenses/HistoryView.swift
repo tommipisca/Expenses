@@ -7,47 +7,29 @@ struct HistoryView: View {
     @Environment(AppRouter.self) private var router
     @State private var query = HistoryQuery(year: .year(Calendar.current.component(.year, from: .now)))
     @State private var pendingDelete: Expense?
+    @Environment(\.isWideLayout) private var isWide
 
     var body: some View {
         let result = history(expenses: store.expenses, tags: store.tags, query: query, calendar: .current)
         NavigationStack {
-            List {
-                Section {
-                    filters
-                    summaryRow(result)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowSeparator(.hidden)
-
-                if result.count == 0 {
-                    ContentUnavailableView(query.text.isEmpty ? "Nessuna spesa" : "Nessun risultato",
-                                           systemImage: "magnifyingglass",
-                                           description: Text("Prova a cambiare anno, tag o ricerca."))
-                        .listRowBackground(Color.clear)
-                }
-
-                ForEach(result.months) { month in
-                    Section {
-                        ForEach(month.expenses) { expense in
-                            Button { router.edit(expense) } label: { ExpenseRow(expense: expense) }
-                                .listRowBackground(Theme.surface)
-                                .swipeActions {
-                                    Button("Elimina", systemImage: "trash", role: .destructive) { pendingDelete = expense }
-                                }
+            Group {
+                if isWide {
+                    // iPad in orizzontale: filtri e riepilogo sempre visibili a sinistra, spese a destra.
+                    HStack(alignment: .top, spacing: 0) {
+                        ScrollView {
+                            sidebarFilters(result)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
                         }
-                    } header: {
-                        HStack {
-                            Text(Formatting.monthTitle(month.id))
-                            Spacer()
-                            Text(Money.format(month.totalCents)).monospacedDigit()
-                        }
-                        .sectionHeaderStyle()
+                        .scrollIndicators(.hidden)
+                        .frame(width: 340)
+                        expenseList(result, showsFilters: false)
                     }
+                    .background(Theme.background)
+                } else {
+                    expenseList(result, showsFilters: true)
                 }
             }
-            .listStyle(.insetGrouped)
-            .themedListBackground()
             .navigationTitle("Storico")
             .searchable(text: $query.text, prompt: "Esercente, nota o importo")
             .confirmationDialog("Eliminare questa spesa?", isPresented: Binding(
@@ -60,6 +42,80 @@ struct HistoryView: View {
         }
         .onAppear(perform: consumePendingQuery)
         .onChange(of: router.pendingHistoryQuery) { consumePendingQuery() }
+    }
+
+    private func expenseList(_ result: HistoryResult, showsFilters: Bool) -> some View {
+        List {
+            if showsFilters {
+                Section {
+                    filters
+                    summaryRow(result)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowSeparator(.hidden)
+            }
+
+            if result.count == 0 {
+                ContentUnavailableView(query.text.isEmpty ? "Nessuna spesa" : "Nessun risultato",
+                                       systemImage: "magnifyingglass",
+                                       description: Text("Prova a cambiare anno, tag o ricerca."))
+                    .listRowBackground(Color.clear)
+            }
+
+            ForEach(result.months) { month in
+                Section {
+                    ForEach(month.expenses) { expense in
+                        Button { router.edit(expense) } label: { ExpenseRow(expense: expense) }
+                            .listRowBackground(Theme.surface)
+                            .swipeActions {
+                                Button("Elimina", systemImage: "trash", role: .destructive) { pendingDelete = expense }
+                            }
+                    }
+                } header: {
+                    HStack {
+                        Text(Formatting.monthTitle(month.id))
+                        Spacer()
+                        Text(Money.format(month.totalCents)).monospacedDigit()
+                    }
+                    .sectionHeaderStyle()
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .themedListBackground()
+    }
+
+    /// Colonna dei filtri per l'iPad in orizzontale: anno, mese, tag e riepilogo, con i chip che vanno a capo.
+    private func sidebarFilters(_ result: HistoryResult) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            summaryRow(result)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Anno").sectionHeaderStyle()
+                FlowLayout(spacing: 8) {
+                    ForEach(availableYears(expenses: store.expenses, calendar: .current), id: \.self) { year in
+                        FilterChip(title: String(year), colorIndex: nil, selected: query.year == .year(year)) {
+                            query.year = .year(year)
+                            if let month = query.month, month.year != year { query.month = nil }
+                        }
+                    }
+                    FilterChip(title: "Tutti", colorIndex: nil, selected: query.year == .all) { query.year = .all }
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Mese").sectionHeaderStyle()
+                monthMenu
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Tag").sectionHeaderStyle()
+                FlowLayout(spacing: 8) {
+                    ForEach(store.tags) { tag in
+                        tagChip(id: tag.id, name: tag.name, colorIndex: tag.colorIndex)
+                    }
+                    tagChip(id: nil, name: TagSlice.untaggedName, colorIndex: nil)
+                }
+            }
+        }
     }
 
     private func consumePendingQuery() {

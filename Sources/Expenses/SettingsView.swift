@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var editingRule: RuleSheet?
     @State private var copied = false
     @FocusState private var budgetFocused: Bool
+    @Environment(\.isWideLayout) private var isWide
 
     struct RuleSheet: Identifiable {
         let id = UUID()
@@ -17,14 +18,35 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                budgetSection
-                recurringSection
-                SyncSettingsSection()
-                walletSection
-                installationSection
+            Group {
+                if isWide {
+                    // iPad in orizzontale: a sinistra le impostazioni di tutti i giorni,
+                    // a destra quelle che si configurano una volta.
+                    HStack(alignment: .top, spacing: 0) {
+                        Form {
+                            budgetSection
+                            recurringSection
+                        }
+                        .themedListBackground()
+                        Form {
+                            SyncSettingsSection()
+                            walletSection
+                            installationSection
+                        }
+                        .themedListBackground()
+                    }
+                    .background(Theme.background)
+                } else {
+                    Form {
+                        budgetSection
+                        recurringSection
+                        SyncSettingsSection()
+                        walletSection
+                        installationSection
+                    }
+                    .themedListBackground()
+                }
             }
-            .themedListBackground()
             .navigationTitle("Impostazioni")
             .sheet(item: $editingRule) { sheet in RecurringFormView(rule: sheet.rule) }
             .onAppear { budgetText = store.settings.monthlyBudgetCents.map(Formatting.editableAmount) ?? "" }

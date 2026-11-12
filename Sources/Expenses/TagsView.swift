@@ -5,6 +5,7 @@ import ExpensesCore
 struct TagsView: View {
     @Environment(ExpenseStore.self) private var store
     @State private var editing: TagSheet?
+    @Environment(\.isWideLayout) private var isWide
 
     struct TagSheet: Identifiable {
         let id = UUID()
@@ -16,28 +17,13 @@ struct TagsView: View {
         let summary = store.summary(for: month)
         let statuses = store.budgetStatuses(for: month)
         NavigationStack {
-            List {
-                if store.tags.isEmpty {
-                    ContentUnavailableView("Nessun tag", systemImage: "tag",
-                                           description: Text("Crea i tag con cui dividere le spese, ad esempio Casa, Spesa, Svago."))
-                        .listRowBackground(Color.clear)
-                }
-                Section {
-                    ForEach(store.tags) { tag in
-                        Button { editing = TagSheet(tag: tag) } label: {
-                            row(tag, cents: summary.slices.first { $0.id == tag.id }?.cents ?? 0,
-                                budget: statuses.first { $0.target == .tag(tag.id) })
-                        }
-                        .listRowBackground(Theme.surface)
-                    }
-                } header: {
-                    if !store.tags.isEmpty {
-                        Text("Spese di \(Formatting.monthName(month))").sectionHeaderStyle()
-                    }
+            Group {
+                if isWide, !store.tags.isEmpty {
+                    grid(month: month, summary: summary, statuses: statuses)
+                } else {
+                    list(month: month, summary: summary, statuses: statuses)
                 }
             }
-            .listStyle(.insetGrouped)
-            .themedListBackground()
             .navigationTitle("Tag")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -47,6 +33,80 @@ struct TagsView: View {
             }
             .sheet(item: $editing) { sheet in TagFormView(tag: sheet.tag) }
         }
+    }
+
+    private func list(month: MonthKey, summary: MonthSummary, statuses: [BudgetStatus]) -> some View {
+        List {
+            if store.tags.isEmpty {
+                ContentUnavailableView("Nessun tag", systemImage: "tag",
+                                       description: Text("Crea i tag con cui dividere le spese, ad esempio Casa, Spesa, Svago."))
+                    .listRowBackground(Color.clear)
+            }
+            Section {
+                ForEach(store.tags) { tag in
+                    Button { editing = TagSheet(tag: tag) } label: {
+                        row(tag, cents: summary.slices.first { $0.id == tag.id }?.cents ?? 0,
+                            budget: statuses.first { $0.target == .tag(tag.id) })
+                    }
+                    .listRowBackground(Theme.surface)
+                }
+            } header: {
+                if !store.tags.isEmpty {
+                    Text("Spese di \(Formatting.monthName(month))").sectionHeaderStyle()
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .themedListBackground()
+    }
+
+    /// iPad in orizzontale: un riquadro per tag, tre per riga.
+    private func grid(month: MonthKey, summary: MonthSummary, statuses: [BudgetStatus]) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Spese di \(Formatting.monthName(month))").sectionHeaderStyle()
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 3), spacing: 16) {
+                    ForEach(store.tags) { tag in
+                        Button { editing = TagSheet(tag: tag) } label: {
+                            tile(tag, cents: summary.slices.first { $0.id == tag.id }?.cents ?? 0,
+                                 budget: statuses.first { $0.target == .tag(tag.id) })
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.horizontal, 32)
+            .padding(.vertical, 16)
+        }
+        .background(Theme.background)
+    }
+
+    private func tile(_ tag: ExpensesCore.Tag, cents: Int, budget: BudgetStatus?) -> some View {
+        let color = Theme.tagColor(index: tag.colorIndex)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(color.opacity(0.14))
+                    .frame(width: 34, height: 34)
+                    .overlay(TagDot(colorIndex: tag.colorIndex, size: 12))
+                Text(tag.name).font(.body.weight(.semibold)).lineLimit(1)
+            }
+            Text(Money.format(cents)).font(.rounded(.title2, weight: .bold)).monospacedDigit()
+            if let budget {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("di \(Money.format(budget.limitCents))").font(.caption).foregroundStyle(Theme.textSecondary)
+                    ProgressLine(fraction: budget.fraction, color: Theme.budgetColor(fraction: budget.fraction))
+                }
+            } else {
+                Text("Nessun budget").font(.caption).foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .foregroundStyle(Theme.textPrimary)
+        .card()
+        .frame(maxHeight: .infinity, alignment: .top)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Modifica il tag")
     }
 
     private func row(_ tag: ExpensesCore.Tag, cents: Int, budget: BudgetStatus?) -> some View {

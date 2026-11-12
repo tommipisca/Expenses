@@ -11,6 +11,7 @@ struct MonthView: View {
     @Environment(AppRouter.self) private var router
     @AppStorage("monthViewStyle") private var style: MonthViewStyle = .ring
     @State private var month: MonthKey?
+    @Environment(\.isWideLayout) private var isWide
 
     var body: some View {
         let shown = month ?? store.currentMonth
@@ -21,34 +22,13 @@ struct MonthView: View {
         }, uniquingKeysWith: { first, _ in first })
 
         ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    header(shown)
-                    if !store.pendingReview.isEmpty {
-                        pendingSection(store.pendingReview)
-                    }
-                    if summary.count == 0 {
-                        emptyState(shown)
-                    } else if style == .ring {
-                        ringSection(summary)
-                    } else {
-                        barsHeader(summary)
-                        BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
-                    }
-                    if let total = statuses.first(where: { $0.target == .total }) {
-                        totalBudgetCard(total)
-                    }
-                    if style == .ring, summary.count > 0 {
-                        tagList(summary, tagBudgets: tagBudgets, month: shown)
-                    }
+            Group {
+                if isWide {
+                    wideBody(shown: shown, summary: summary, statuses: statuses, tagBudgets: tagBudgets)
+                } else {
+                    narrowBody(shown: shown, summary: summary, statuses: statuses, tagBudgets: tagBudgets)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 100)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
             }
-            .scrollIndicators(.hidden)
             .gesture(DragGesture(minimumDistance: 30).onEnded { value in
                 guard abs(value.translation.width) > abs(value.translation.height) * 1.5,
                       abs(value.translation.width) > 60 else { return }
@@ -67,6 +47,86 @@ struct MonthView: View {
             .padding(20)
         }
         .background(Theme.background.ignoresSafeArea())
+    }
+
+    // MARK: Layout
+
+    /// Telefono e iPad in verticale: tutto in una colonna.
+    private func narrowBody(shown: MonthKey, summary: MonthSummary, statuses: [BudgetStatus],
+                            tagBudgets: [UUID: BudgetStatus]) -> some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                header(shown)
+                if !store.pendingReview.isEmpty {
+                    pendingSection(store.pendingReview)
+                }
+                if summary.count == 0 {
+                    emptyState(shown, maxWidth: 260)
+                } else if style == .ring {
+                    ringSection(summary, maxWidth: 300)
+                } else {
+                    barsHeader(summary)
+                    BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
+                }
+                if let total = statuses.first(where: { $0.target == .total }) {
+                    totalBudgetCard(total)
+                }
+                if style == .ring, summary.count > 0 {
+                    tagList(summary, tagBudgets: tagBudgets, month: shown)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 100)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    /// iPad in orizzontale: a sinistra mese e anello grande, a destra (scorre) da confermare, budget e tag.
+    private func wideBody(shown: MonthKey, summary: MonthSummary, statuses: [BudgetStatus],
+                          tagBudgets: [UUID: BudgetStatus]) -> some View {
+        HStack(alignment: .top, spacing: 32) {
+            VStack(spacing: 24) {
+                header(shown)
+                Spacer(minLength: 0)
+                if summary.count == 0 {
+                    emptyState(shown, maxWidth: 420)
+                } else if style == .ring {
+                    ringSection(summary, maxWidth: 460)
+                } else {
+                    barsHeader(summary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    if !store.pendingReview.isEmpty {
+                        pendingSection(store.pendingReview)
+                    }
+                    if let total = statuses.first(where: { $0.target == .total }) {
+                        totalBudgetCard(total)
+                    }
+                    if summary.count > 0 {
+                        if style == .ring {
+                            tagList(summary, tagBudgets: tagBudgets, month: shown)
+                        } else {
+                            BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
+                        }
+                    }
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 100)
+            }
+            .scrollIndicators(.hidden)
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 32)
     }
 
     // MARK: Parti
@@ -111,7 +171,7 @@ struct MonthView: View {
         .accessibilityLabel(label)
     }
 
-    private func ringSection(_ summary: MonthSummary) -> some View {
+    private func ringSection(_ summary: MonthSummary, maxWidth: CGFloat) -> some View {
         ZStack {
             RingChart(slices: summary.slices).id(summary.month)
             VStack(spacing: 6) {
@@ -125,7 +185,7 @@ struct MonthView: View {
             }
             .padding(.horizontal, 40)
         }
-        .frame(maxWidth: 300)
+        .frame(maxWidth: maxWidth)
     }
 
     private func barsHeader(_ summary: MonthSummary) -> some View {
@@ -163,7 +223,7 @@ struct MonthView: View {
             .multilineTextAlignment(.center)
     }
 
-    private func emptyState(_ shown: MonthKey) -> some View {
+    private func emptyState(_ shown: MonthKey, maxWidth: CGFloat) -> some View {
         ZStack {
             // Mese senza spese: un cerchio appena accennato, trasparente sullo sfondo (come nel widget).
             Circle().stroke(Color.white.opacity(0.08), lineWidth: 26).padding(13)
@@ -173,7 +233,7 @@ struct MonthView: View {
                     .font(.footnote).foregroundStyle(Theme.textSecondary)
             }
         }
-        .frame(maxWidth: 260)
+        .frame(maxWidth: maxWidth)
         .aspectRatio(1, contentMode: .fit)
     }
 
