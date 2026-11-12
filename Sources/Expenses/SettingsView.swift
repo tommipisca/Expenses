@@ -28,12 +28,14 @@ struct SettingsView: View {
                             recurringSection
                         }
                         .themedListBackground()
+                        .floatingTabBarClearance()
                         Form {
                             SyncSettingsSection()
                             walletSection
                             installationSection
                         }
                         .themedListBackground()
+                        .floatingTabBarClearance()
                     }
                     .background(Theme.background)
                 } else {
@@ -45,6 +47,7 @@ struct SettingsView: View {
                         installationSection
                     }
                     .themedListBackground()
+                    .floatingTabBarClearance()
                 }
             }
             .navigationTitle("Impostazioni")

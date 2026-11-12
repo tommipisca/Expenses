@@ -12,6 +12,7 @@ struct MonthView: View {
     @AppStorage("monthViewStyle") private var style: MonthViewStyle = .ring
     @State private var month: MonthKey?
     @Environment(\.isWideLayout) private var isWide
+    @Environment(\.floatingTabBarHeight) private var tabBarHeight
 
     var body: some View {
         let shown = month ?? store.currentMonth
@@ -45,6 +46,7 @@ struct MonthView: View {
             }
             .accessibilityLabel("Aggiungi spesa")
             .padding(20)
+            .padding(.bottom, tabBarHeight)
         }
         .background(Theme.background.ignoresSafeArea())
     }
@@ -82,6 +84,7 @@ struct MonthView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
+        .floatingTabBarClearance()
     }
 
     /// iPad in orizzontale: a sinistra mese e anello grande, a destra (scorre) da confermare, budget e tag.
@@ -101,7 +104,7 @@ struct MonthView: View {
                 Spacer(minLength: 0)
             }
             .padding(.top, 8)
-            .padding(.bottom, 24)
+            .padding(.bottom, 24 + tabBarHeight)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             ScrollView {
@@ -124,6 +127,7 @@ struct MonthView: View {
                 .padding(.bottom, 100)
             }
             .scrollIndicators(.hidden)
+            .floatingTabBarClearance()
             .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, 32)

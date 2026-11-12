@@ -58,6 +58,7 @@ struct TagsView: View {
         }
         .listStyle(.insetGrouped)
         .themedListBackground()
+        .floatingTabBarClearance()
     }
 
     /// iPad in orizzontale: un riquadro per tag, tre per riga.
@@ -78,6 +79,7 @@ struct TagsView: View {
             .padding(.horizontal, 32)
             .padding(.vertical, 16)
         }
+        .floatingTabBarClearance()
         .background(Theme.background)
     }
 

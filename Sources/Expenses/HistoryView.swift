@@ -22,6 +22,7 @@ struct HistoryView: View {
                                 .padding(.vertical, 12)
                         }
                         .scrollIndicators(.hidden)
+                        .floatingTabBarClearance()
                         .frame(width: 340)
                         expenseList(result, showsFilters: false)
                     }
@@ -84,6 +85,7 @@ struct HistoryView: View {
         }
         .listStyle(.insetGrouped)
         .themedListBackground()
+        .floatingTabBarClearance()
     }
 
     /// Colonna dei filtri per l'iPad in orizzontale: anno, mese, tag e riepilogo, con i chip che vanno a capo.

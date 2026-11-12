@@ -1,8 +1,26 @@
 import SwiftUI
 import ExpensesCore
 
-enum AppTab: Hashable {
+enum AppTab: CaseIterable, Hashable {
     case month, history, tags, settings
+
+    var title: String {
+        switch self {
+        case .month: "Mese"
+        case .history: "Storico"
+        case .tags: "Tag"
+        case .settings: "Impostazioni"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .month: "chart.pie.fill"
+        case .history: "list.bullet"
+        case .tags: "tag.fill"
+        case .settings: "gearshape.fill"
+        }
+    }
 }
 
 /// Foglio "Nuova spesa" / "Modifica spesa".
@@ -47,6 +65,8 @@ final class AppRouter {
 struct RootView: View {
     @Environment(ExpenseStore.self) private var store
     @Environment(AppRouter.self) private var router
+    /// Altezza dell'isola con i suoi margini, misurata: le pagine la usano come spazio finale.
+    @State private var tabBarHeight: CGFloat = 0
 
     var body: some View {
         @Bindable var router = router
@@ -67,21 +87,34 @@ struct RootView: View {
         }
     }
 
+    /// Schede con barra personalizzata (come ExamsTrack): un'isola arrotondata che fluttua sopra il contenuto.
     private func tabs(_ selection: Binding<AppTab>) -> some View {
         TabView(selection: selection) {
             MonthView()
-                .tabItem { Label("Mese", systemImage: "chart.pie.fill") }
-                .badge(store.pendingReview.count)
                 .tag(AppTab.month)
+                .toolbar(.hidden, for: .tabBar)
             HistoryView()
-                .tabItem { Label("Storico", systemImage: "list.bullet") }
                 .tag(AppTab.history)
+                .toolbar(.hidden, for: .tabBar)
             TagsView()
-                .tabItem { Label("Tag", systemImage: "tag.fill") }
                 .tag(AppTab.tags)
+                .toolbar(.hidden, for: .tabBar)
             SettingsView()
-                .tabItem { Label("Impostazioni", systemImage: "gearshape.fill") }
                 .tag(AppTab.settings)
+                .toolbar(.hidden, for: .tabBar)
         }
+        .environment(\.floatingTabBarHeight, tabBarHeight)
+        // L'isola fluttua sopra il contenuto, che può scorrerle sotto.
+        .overlay(alignment: .bottom) {
+            FloatingTabBar(selection: selection, badges: [.month: store.pendingReview.count])
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onAppear { tabBarHeight = proxy.size.height }
+                            .onChange(of: proxy.size.height) { _, height in tabBarHeight = height }
+                    }
+                }
+        }
+        .background(Theme.background.ignoresSafeArea())
     }
 }
