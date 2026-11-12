@@ -257,20 +257,29 @@ struct MediumView: View {
                 AmountText(cents: summary.totalCents, size: 15).padding(.horizontal, 16)
             }
             .frame(width: 120)
-            VStack(alignment: .leading, spacing: 6) {
-                SectionTitle(text: WidgetFormat.monthName(summary.month).capitalized)
-                ForEach(summary.slices.prefix(3)) { SliceRow(slice: $0, showsPercent: false) }
-                if summary.slices.isEmpty {
-                    Text("Nessuna spesa").font(.caption).foregroundStyle(WidgetTheme.textSecondary)
+            // Tutti i tag che ci stanno in altezza: si prova dal numero più alto e si scende finché entra.
+            ViewThatFits(in: .vertical) {
+                ForEach((1...max(summary.slices.count, 1)).reversed(), id: \.self) { count in
+                    column(showing: count)
                 }
-                Spacer(minLength: 0)
-                if let budget = summary.monthlyBudget {
-                    Text(budget.remainingCents >= 0 ? "Restano \(Money.format(budget.remainingCents))"
-                                                    : "Budget superato di \(Money.format(-budget.remainingCents))")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(budget.fraction >= 1 ? WidgetTheme.danger
-                                         : budget.fraction >= 0.8 ? WidgetTheme.warning : WidgetTheme.textSecondary)
-                }
+            }
+        }
+    }
+
+    private func column(showing count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionTitle(text: WidgetFormat.monthName(summary.month).capitalized)
+            ForEach(summary.slices.prefix(count)) { SliceRow(slice: $0, showsPercent: false) }
+            if summary.slices.isEmpty {
+                Text("Nessuna spesa").font(.caption).foregroundStyle(WidgetTheme.textSecondary)
+            }
+            Spacer(minLength: 0)
+            if let budget = summary.monthlyBudget {
+                Text(budget.remainingCents >= 0 ? "Restano \(Money.format(budget.remainingCents))"
+                                                : "Budget superato di \(Money.format(-budget.remainingCents))")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(budget.fraction >= 1 ? WidgetTheme.danger
+                                     : budget.fraction >= 0.8 ? WidgetTheme.warning : WidgetTheme.textSecondary)
             }
         }
     }
