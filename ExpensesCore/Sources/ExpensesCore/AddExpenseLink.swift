@@ -86,7 +86,9 @@ public func parseAddExpenseLink(_ url: URL) -> AddExpenseRequest? {
     guard url.scheme?.lowercased() == AddExpenseLink.scheme, url.host?.lowercased() == "add",
           let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
     func value(_ name: String) -> String? {
-        let raw = components.queryItems?.first { $0.name == name }?.value?.trimmingCharacters(in: .whitespaces)
+        // Le parentesi quadre dell'esempio a volte restano intorno alle variabili: si ignorano.
+        let raw = components.queryItems?.first { $0.name == name }?.value?
+            .trimmingCharacters(in: CharacterSet.whitespaces.union(["[", "]"]))
         return raw?.isEmpty == false ? raw : nil
     }
     return AddExpenseRequest(amount: value("amount").map(readAmount), merchant: value("merchant"), card: value("card"))

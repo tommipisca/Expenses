@@ -56,4 +56,19 @@ import Testing
         #expect(parseAddExpenseLink(URL(string: "https://add?amount=12")!) == nil)
         #expect(parseAddExpenseLink(URL(string: "expenses://month")!) == nil)
     }
+
+    @Test func ignoresPlaceholderBrackets() throws {
+        // Chi copia l'esempio lascia le parentesi quadre intorno alle variabili di Comandi Rapidi.
+        let url = try #require(URL(string: "expenses://add?amount=%5B%E2%82%AC12,50%5D&merchant=%5BBar%20Mario%5D&card=%5BPostepay%5D"))
+        let request = try #require(parseAddExpenseLink(url))
+        #expect(request.amount == .euros(cents: 1250))
+        #expect(request.merchant == "Bar Mario")
+        #expect(request.card == "Postepay")
+    }
+
+    @Test func emptyBracketsAreNil() throws {
+        let url = try #require(URL(string: "expenses://add?amount=%5B%5D&merchant=%5B%20%5D&card=%5B%5D"))
+        let request = try #require(parseAddExpenseLink(url))
+        #expect(request == AddExpenseRequest(amount: nil, merchant: nil, card: nil))
+    }
 }
