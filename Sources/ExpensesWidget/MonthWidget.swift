@@ -149,9 +149,8 @@ struct AmountText: View {
     var body: some View {
         let parts = Money.formatParts(cents)
         (Text(parts.euros) + Text(parts.decimals).foregroundColor(WidgetTheme.textSecondary)
-            .font(.system(size: size * 0.6, weight: .bold, design: .rounded)))
-            .font(.system(size: size, weight: .bold, design: .rounded))
-            .monospacedDigit()
+            .font(.system(size: size * 0.6, weight: .bold, design: .monospaced)))
+            .font(.system(size: size, weight: .bold, design: .monospaced))
             .minimumScaleFactor(0.5)
             .lineLimit(1)
     }
@@ -160,7 +159,7 @@ struct AmountText: View {
 struct SectionTitle: View {
     let text: String
     var body: some View {
-        Text(text).font(.system(.caption, design: .rounded, weight: .semibold))
+        Text(text).font(.system(.caption, weight: .semibold))
             .foregroundStyle(WidgetTheme.textSecondary)
     }
 }
@@ -199,7 +198,7 @@ struct SliceRow: View {
             if showsPercent {
                 Text(WidgetFormat.percent(slice.fraction)).font(.caption2).foregroundStyle(WidgetTheme.textSecondary)
             }
-            Text(Money.format(slice.cents)).font(.system(.caption, design: .rounded).weight(.semibold)).monospacedDigit()
+            Text(Money.format(slice.cents)).font(.system(.caption, design: .monospaced).weight(.semibold)).monospacedDigit()
         }
     }
 }
@@ -239,7 +238,7 @@ struct SmallView: View {
         ZStack {
             WidgetRing(slices: summary.slices, lineWidth: 12)
             VStack(spacing: 1) {
-                Text(WidgetFormat.monthName(summary.month)).font(.system(size: 10, weight: .semibold)).textCase(.uppercase)
+                Text(WidgetFormat.monthName(summary.month).capitalized).font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(WidgetTheme.textSecondary)
                 AmountText(cents: summary.totalCents, size: 20)
             }
@@ -326,7 +325,7 @@ struct ExtraLargeView: View {
                 WidgetRing(slices: summary.slices, lineWidth: 34)
                 VStack(spacing: 4) {
                     Text(WidgetFormat.monthName(summary.month).capitalized)
-                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .font(.system(.headline, weight: .semibold))
                         .foregroundStyle(WidgetTheme.textSecondary)
                     AmountText(cents: summary.totalCents, size: 30)
                 }
@@ -346,7 +345,7 @@ struct ExtraLargeView: View {
                         Text(expense.title).font(.subheadline.weight(.medium)).lineLimit(1)
                         Text(WidgetFormat.shortDate(expense.date)).font(.caption).foregroundStyle(WidgetTheme.textSecondary)
                         Spacer(minLength: 4)
-                        Text(Money.format(expense.cents)).font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        Text(Money.format(expense.cents)).font(.system(.subheadline, design: .monospaced).weight(.semibold))
                             .monospacedDigit()
                     }
                 }
@@ -358,7 +357,7 @@ struct ExtraLargeView: View {
                         Text(slice.name).font(.subheadline.weight(.medium)).lineLimit(1)
                         Spacer(minLength: 4)
                         Text(WidgetFormat.percent(slice.fraction)).font(.caption).foregroundStyle(WidgetTheme.textSecondary)
-                        Text(Money.format(slice.cents)).font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        Text(Money.format(slice.cents)).font(.system(.subheadline, design: .monospaced).weight(.semibold))
                             .monospacedDigit()
                     }
                 }
@@ -416,7 +415,7 @@ struct AccessoryCircularView: View {
                     WidgetRing(slices: summary.slices, lineWidth: 5)
                 }
                 Text(WidgetFormat.compact(summary?.totalCents ?? 0))
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 12, weight: .bold))
                     .minimumScaleFactor(0.5)
                     .padding(.horizontal, 6)
             }
@@ -431,7 +430,7 @@ struct AccessoryRectangularView: View {
             if let summary {
                 Text("Spese di \(WidgetFormat.monthName(summary.month))").font(.caption2.weight(.semibold))
                     .widgetAccentable()
-                Text(Money.format(summary.totalCents)).font(.system(.title3, design: .rounded).weight(.bold))
+                Text(Money.format(summary.totalCents)).font(.system(.title3, design: .monospaced).weight(.bold))
                     .minimumScaleFactor(0.6).lineLimit(1)
                 if let budget = summary.monthlyBudget {
                     Text(budget.remainingCents >= 0 ? "Restano \(Money.format(budget.remainingCents))"

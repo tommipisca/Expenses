@@ -150,7 +150,7 @@ struct SettingsView: View {
                 Text(RecurringFormView.describe(rule)).font(.caption).foregroundStyle(Theme.textSecondary)
             }
             Spacer()
-            Text(Money.format(rule.amountCents)).font(.rounded(.body, weight: .semibold)).monospacedDigit()
+            Text(Money.format(rule.amountCents)).font(.amount(.body, weight: .semibold))
         }
         .opacity(rule.isActive ? 1 : 0.5)
         .contentShape(Rectangle())
@@ -186,7 +186,7 @@ struct SettingsView: View {
 
     private func step(_ number: Int, _ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(number)").font(.rounded(.footnote, weight: .bold)).foregroundStyle(Theme.accent)
+            Text("\(number)").font(.ui(.footnote, weight: .bold)).foregroundStyle(Theme.accent)
             Text(text).font(.footnote)
         }
     }
@@ -202,7 +202,7 @@ struct SettingsView: View {
                 LabeledContent("Scadenza dell'app") {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(days <= 0 ? "Oggi" : days == 1 ? "Domani" : "Tra \(days) giorni")
-                            .font(.rounded(.body, weight: .semibold))
+                            .font(.ui(.body, weight: .semibold))
                             .foregroundStyle(days <= 1 ? Theme.danger : days <= 3 ? Theme.warning : Theme.textPrimary)
                         Text(expiration.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute()
                             .locale(Formatting.italian)))

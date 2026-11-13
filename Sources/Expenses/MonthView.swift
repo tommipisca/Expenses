@@ -42,7 +42,7 @@ struct MonthView: View {
                     .foregroundStyle(Theme.background)
                     .frame(width: 60, height: 60)
                     .background(Theme.accent, in: Circle())
-                    .shadow(color: Theme.accent.opacity(0.35), radius: 15, y: 8)
+                    .overlay(Circle().stroke(Theme.background, lineWidth: 3))
             }
             .accessibilityLabel("Aggiungi spesa")
             .padding(20)
@@ -70,11 +70,11 @@ struct MonthView: View {
                     barsHeader(summary)
                     BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
                 }
-                if let total = statuses.first(where: { $0.target == .total }) {
-                    totalBudgetCard(total)
-                }
+                let total = statuses.first(where: { $0.target == .total })
                 if style == .ring, summary.count > 0 {
-                    tagList(summary, tagBudgets: tagBudgets, month: shown)
+                    tagList(summary, tagBudgets: tagBudgets, month: shown, total: total)
+                } else if let total {
+                    totalBudgetCard(total)
                 }
             }
             .padding(.horizontal, 20)
@@ -112,15 +112,14 @@ struct MonthView: View {
                     if !store.pendingReview.isEmpty {
                         pendingSection(store.pendingReview)
                     }
-                    if let total = statuses.first(where: { $0.target == .total }) {
+                    let total = statuses.first(where: { $0.target == .total })
+                    if style == .ring, summary.count > 0 {
+                        tagList(summary, tagBudgets: tagBudgets, month: shown, total: total)
+                    } else if let total {
                         totalBudgetCard(total)
                     }
-                    if summary.count > 0 {
-                        if style == .ring {
-                            tagList(summary, tagBudgets: tagBudgets, month: shown)
-                        } else {
-                            BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
-                        }
+                    if style == .bars, summary.count > 0 {
+                        BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
                     }
                 }
                 .padding(.top, 8)
@@ -149,14 +148,19 @@ struct MonthView: View {
             HStack {
                 roundButton("chevron.left", label: "Mese precedente") { change(by: -1) }
                 Spacer()
-                VStack(spacing: 2) {
-                    Text(shown == store.currentMonth ? "Mese corrente" : "Torna al mese corrente")
-                        .font(.caption.weight(.semibold)).tracking(1.5).textCase(.uppercase)
-                        .foregroundStyle(shown == store.currentMonth ? Theme.textSecondary : Theme.accent)
-                    Text(Formatting.monthTitle(shown)).font(.rounded(.title3, weight: .semibold))
+                VStack(spacing: 4) {
+                    Text(Formatting.monthTitle(shown))
+                        .font(.monthTitle(.title2))
+                        .foregroundStyle(Theme.textPrimary)
+                    // Fuori dal mese corrente, un pulsante per tornarci (prima era un'etichetta da toccare).
+                    if shown != store.currentMonth {
+                        Button("Torna a \(Formatting.monthName(store.currentMonth))") {
+                            withAnimation(.snappy) { month = nil }
+                        }
+                        .font(.ui(.footnote, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                    }
                 }
-                .contentShape(Rectangle())
-                .onTapGesture { withAnimation(.snappy) { month = nil } }
                 Spacer()
                 roundButton("chevron.right", label: "Mese successivo") { change(by: 1) }
             }
@@ -166,10 +170,9 @@ struct MonthView: View {
     private func roundButton(_ icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 18, weight: .semibold))
                 .frame(width: 44, height: 44)
-                .background(Theme.surface, in: Circle())
-                .overlay(Circle().stroke(Theme.stroke, lineWidth: 1))
+                .contentShape(Rectangle())
         }
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel(label)
@@ -199,9 +202,7 @@ struct MonthView: View {
                 if let comparison = summary.comparison { comparisonCapsule(comparison) }
                 Text("\(summary.count) \(summary.count == 1 ? "spesa" : "spese")")
                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(Theme.surface, in: Capsule())
-                    .overlay(Capsule().stroke(Theme.stroke, lineWidth: 1))
+
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -209,10 +210,9 @@ struct MonthView: View {
 
     private func amountText(_ cents: Int, size: CGFloat) -> some View {
         let parts = Money.formatParts(cents)
-        return (Text(parts.euros) + Text(parts.decimals).font(.system(size: size * 0.55, weight: .bold, design: .rounded))
+        return (Text(parts.euros) + Text(parts.decimals).font(.amount(size: size * 0.55, weight: .semibold))
             .foregroundColor(Theme.textSecondary))
-            .font(.system(size: size, weight: .bold, design: .rounded))
-            .monospacedDigit()
+            .font(.amount(size: size, weight: .bold))
             .minimumScaleFactor(0.5)
             .lineLimit(1)
     }
@@ -286,35 +286,67 @@ struct MonthView: View {
         .card()
     }
 
-    private func tagList(_ summary: MonthSummary, tagBudgets: [UUID: BudgetStatus], month: MonthKey) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(summary.slices.enumerated()), id: \.element.id) { index, slice in
+    /// L'elenco dei tag come uno scontrino: nome, puntini, importo; sotto la perforazione, il budget del mese.
+    private func tagList(_ summary: MonthSummary, tagBudgets: [UUID: BudgetStatus], month: MonthKey,
+                         total: BudgetStatus? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(summary.slices) { slice in
                 Button { open(slice, month: month) } label: {
-                    VStack(spacing: 8) {
-                        HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             TagDot(colorIndex: slice.colorIndex)
+                                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
                             Text(slice.name).font(.body.weight(.medium)).lineLimit(1)
-                            Spacer()
-                            Text(Formatting.percent(slice.fraction)).font(.footnote).foregroundStyle(Theme.textSecondary)
-                                .frame(width: 44, alignment: .trailing)
-                            Text(Money.format(slice.cents)).font(.rounded(.body, weight: .semibold)).monospacedDigit()
-                                .frame(minWidth: 88, alignment: .trailing)
+                            Text(Formatting.percent(slice.fraction))
+                                .font(.footnote)
+                                .foregroundStyle(Theme.textSecondary)
+                                .fixedSize()
+                            DottedLeader()
+                            Text(Money.format(slice.cents))
+                                .font(.amount(.body))
+                                .fixedSize()
                         }
                         if let budget = slice.id.flatMap({ tagBudgets[$0] }) {
                             ProgressLine(fraction: budget.fraction, color: Theme.budgetColor(fraction: budget.fraction), height: 3)
-                                .padding(.leading, 22)
+                                .padding(.leading, 18)
                         }
                     }
-                    .padding(.vertical, 14)
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Theme.textPrimary)
-                if index < summary.slices.count - 1 { Divider().overlay(Theme.elevated).padding(.leading, 38) }
+                .accessibilityElement(children: .combine)
+            }
+            if let total {
+                Perforation().padding(.vertical, 10)
+                budgetLines(total)
+                    .padding(.vertical, 6)
             }
         }
-        .card(padding: 0)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// Il budget del mese in coda allo scontrino.
+    private func budgetLines(_ status: BudgetStatus) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Budget mensile").font(.subheadline.weight(.semibold))
+                Text(Formatting.percent(status.fraction)).font(.footnote).foregroundStyle(Theme.textSecondary)
+                DottedLeader()
+                Text(Money.format(status.limitCents)).font(.amount(.subheadline)).fixedSize()
+            }
+            Text(status.remainingCents >= 0
+                 ? "Restano \(Money.format(status.remainingCents))"
+                 : "Superato di \(Money.format(-status.remainingCents))")
+                .font(.footnote)
+                .foregroundStyle(status.remainingCents >= 0 ? Theme.textSecondary : Theme.danger)
+            ProgressLine(fraction: status.fraction, color: Theme.budgetColor(fraction: status.fraction), height: 6)
+        }
+        .foregroundStyle(Theme.textPrimary)
     }
 
     private func open(_ slice: TagSlice, month: MonthKey) {

@@ -6,8 +6,6 @@ struct FloatingTabBar: View {
     /// Numero da mostrare su una scheda (es. spese da confermare sul Mese); 0 = niente.
     var badges: [AppTab: Int] = [:]
     @Namespace private var highlight
-    /// Un contatore per scheda: cresce solo per la scheda in cui si entra, così rimbalza solo lei.
-    @State private var bounces: [AppTab: Int] = [:]
 
     var body: some View {
         HStack(spacing: 4) {
@@ -16,7 +14,6 @@ struct FloatingTabBar: View {
                 let badge = badges[tab, default: 0]
                 Button {
                     guard tab != selection else { return }
-                    bounces[tab, default: 0] += 1
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
                         selection = tab
                     }
@@ -24,11 +21,11 @@ struct FloatingTabBar: View {
                     VStack(spacing: 3) {
                         Image(systemName: tab.icon)
                             .font(.body.weight(.semibold))
-                            .symbolEffect(.bounce, value: bounces[tab, default: 0])
+                            .foregroundStyle(isSelected ? Theme.accent : Theme.textSecondary)
                             .overlay(alignment: .topTrailing) {
                                 if badge > 0 {
                                     Text("\(badge)")
-                                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                                        .font(.system(size: 10, weight: .bold))
                                         .foregroundStyle(.white)
                                         .padding(.horizontal, 5).frame(minWidth: 16, minHeight: 16)
                                         .background(Theme.danger, in: Capsule())
@@ -36,7 +33,7 @@ struct FloatingTabBar: View {
                                 }
                             }
                         Text(tab.title)
-                            .font(.rounded(.caption2, weight: .semibold))
+                            .font(.ui(.caption2, weight: .semibold))
                     }
                     .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
                     .frame(maxWidth: .infinity)
@@ -44,11 +41,7 @@ struct FloatingTabBar: View {
                     .background {
                         if isSelected {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Theme.accent.opacity(0.22))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .stroke(Theme.accent.opacity(0.5), lineWidth: 1)
-                                }
+                                .fill(Theme.elevated)
                                 .matchedGeometryEffect(id: "selected", in: highlight)
                         }
                     }
@@ -63,12 +56,12 @@ struct FloatingTabBar: View {
         // Le etichette crescono con il testo di sistema, ma entro un limite che non sfonda l'isola.
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .background {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Theme.surface)
                 .shadow(color: .black.opacity(0.5), radius: 18, y: 8)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Theme.stroke, lineWidth: 1)
         }
         // Su iPad l'isola resta compatta al centro invece di allungarsi su tutto lo schermo.

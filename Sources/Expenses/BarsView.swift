@@ -42,7 +42,7 @@ struct BarsView: View {
                 Spacer(minLength: 4)
                 Text(Formatting.percent(slice.fraction)).font(.caption).foregroundStyle(Theme.textSecondary)
             }
-            Text(Money.format(slice.cents)).font(.rounded(.title3, weight: .semibold)).monospacedDigit()
+            Text(Money.format(slice.cents)).font(.amount(.title3, weight: .semibold))
             if let budget {
                 ProgressLine(fraction: budget.fraction, color: Theme.budgetColor(fraction: budget.fraction))
             } else {

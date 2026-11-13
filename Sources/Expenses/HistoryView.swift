@@ -190,7 +190,7 @@ struct HistoryView: View {
         HStack {
             Text(summaryText(result)).font(.footnote).foregroundStyle(Theme.textSecondary)
             Spacer()
-            Text(Money.format(result.totalCents)).font(.rounded(.headline, weight: .semibold)).monospacedDigit()
+            Text(Money.format(result.totalCents)).font(.amount(.headline, weight: .semibold))
         }
         .card(padding: 14)
     }
@@ -216,17 +216,18 @@ struct ExpenseRow: View {
         let tag = store.tag(id: expense.tagID)
         let color = Theme.tagColor(index: tag?.colorIndex)
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(color.opacity(0.14))
-                .frame(width: 38, height: 38)
-                .overlay(TagDot(colorIndex: tag?.colorIndex))
+            // Il colore del tag come segno a margine, come in ExamsTrack.
+            Capsule()
+                .fill(color)
+                .frame(width: 4, height: 32)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.merchant ?? expense.note ?? tag?.name ?? "Spesa")
                     .font(.body.weight(.medium)).lineLimit(1)
                 Text(details(tag: tag)).font(.caption).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
             Spacer(minLength: 8)
-            Text(Money.format(expense.amountCents)).font(.rounded(.body, weight: .semibold)).monospacedDigit()
+            Text(Money.format(expense.amountCents)).font(.amount(.body, weight: .semibold))
         }
         .foregroundStyle(Theme.textPrimary)
         .padding(.vertical, 2)

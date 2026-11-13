@@ -93,7 +93,7 @@ struct TagsView: View {
                     .overlay(TagDot(colorIndex: tag.colorIndex, size: 12))
                 Text(tag.name).font(.body.weight(.semibold)).lineLimit(1)
             }
-            Text(Money.format(cents)).font(.rounded(.title2, weight: .bold)).monospacedDigit()
+            Text(Money.format(cents)).font(.amount(.title2, weight: .bold))
             if let budget {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("di \(Money.format(budget.limitCents))").font(.caption).foregroundStyle(Theme.textSecondary)
@@ -117,7 +117,7 @@ struct TagsView: View {
                 TagDot(colorIndex: tag.colorIndex, size: 12)
                 Text(tag.name).font(.body.weight(.medium))
                 Spacer()
-                Text(Money.format(cents)).font(.rounded(.body, weight: .semibold)).monospacedDigit()
+                Text(Money.format(cents)).font(.amount(.body, weight: .semibold))
             }
             if let budget {
                 HStack {

@@ -121,12 +121,11 @@ struct ExpenseFormView: View {
         VStack(spacing: 6) {
             Text("Importo").font(.footnote).foregroundStyle(Theme.textSecondary)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("€").font(.system(size: 40, weight: .bold, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                Text("€").font(.amount(size: 40)).foregroundStyle(Theme.textSecondary)
                 TextField("0,00", text: $amountText)
                     .keyboardType(.decimalPad)
                     .focused($amountFocused)
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
-                    .monospacedDigit()
+                    .font(.amount(size: 56))
                     .fixedSize()
                     .accessibilityLabel("Importo in euro")
             }
@@ -171,7 +170,7 @@ struct ExpenseFormView: View {
 
     private var tagSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Tag").font(.footnote.weight(.semibold)).tracking(1).textCase(.uppercase)
+            Text("Tag").font(.ui(.subheadline, weight: .semibold))
                 .foregroundStyle(Theme.textSecondary)
             FlowLayout(spacing: 8) {
                 ForEach(store.tags) { tag in
