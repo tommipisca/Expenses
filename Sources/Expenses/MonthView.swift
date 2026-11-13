@@ -66,8 +66,10 @@ struct MonthView: View {
                     emptyState(shown, maxWidth: 260)
                 } else if style == .ring {
                     ringSection(summary, maxWidth: 300)
+                    dailySection(shown)
                 } else {
                     barsHeader(summary)
+                    dailySection(shown)
                     BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
                 }
                 let total = statuses.first(where: { $0.target == .total })
@@ -75,6 +77,9 @@ struct MonthView: View {
                     tagList(summary, tagBudgets: tagBudgets, month: shown, total: total)
                 } else if let total {
                     totalBudgetCard(total)
+                }
+                if summary.count > 0 {
+                    RecentExpensesView(expenses: store.expenses.recent(in: shown, limit: 5, calendar: .current), month: shown)
                 }
             }
             .padding(.horizontal, 20)
@@ -98,8 +103,10 @@ struct MonthView: View {
                     emptyState(shown, maxWidth: 420)
                 } else if style == .ring {
                     ringSection(summary, maxWidth: 460)
+                    dailySection(shown).frame(maxWidth: 460)
                 } else {
                     barsHeader(summary)
+                    dailySection(shown)
                 }
                 Spacer(minLength: 0)
             }
@@ -120,6 +127,9 @@ struct MonthView: View {
                     }
                     if style == .bars, summary.count > 0 {
                         BarsView(summary: summary, tagBudgets: tagBudgets) { open($0, month: shown) }
+                    }
+                    if summary.count > 0 {
+                        RecentExpensesView(expenses: store.expenses.recent(in: shown, limit: 5, calendar: .current), month: shown)
                     }
                 }
                 .padding(.top, 8)
@@ -347,6 +357,17 @@ struct MonthView: View {
             ProgressLine(fraction: status.fraction, color: Theme.budgetColor(fraction: status.fraction), height: 6)
         }
         .foregroundStyle(Theme.textPrimary)
+    }
+
+    /// La striscia giorno per giorno, con il suo titolo.
+    private func dailySection(_ shown: MonthKey) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Giorno per giorno").sectionHeaderStyle()
+            DailyBarsView(daily: DailySpending.make(expenses: store.expenses, month: shown, now: .now, calendar: .current),
+                          month: shown)
+                .padding(.bottom, 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func open(_ slice: TagSlice, month: MonthKey) {

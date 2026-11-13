@@ -47,6 +47,12 @@ final class AppRouter {
         expenseSheet = ExpenseSheet(expense: expense)
     }
 
+    /// Lo Storico su un mese, senza filtri sui tag ("Vedi tutte" nella schermata Mese).
+    func openHistory(month: MonthKey) {
+        pendingHistoryQuery = HistoryQuery(month: month)
+        tab = .history
+    }
+
     func openHistory(tagID: UUID?, month: MonthKey) {
         pendingHistoryQuery = HistoryQuery(tagIDs: [tagID], month: month)
         tab = .history
