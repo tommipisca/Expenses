@@ -3,10 +3,6 @@ import Foundation
 /// Riepilogo del mese scritto dall'app nell'App Group e letto dal widget.
 public struct WidgetSummary: Codable, Equatable, Sendable {
     public static let fileName = "widget-summary.json"
-    /// Id della fetta "Altro", che raccoglie i tag oltre i primi quattro.
-    public static let otherID = UUID(uuidString: "00000000-0000-0000-0000-0000000000A1")!
-    public static let maxSlices = 5
-
     public var month: MonthKey
     public var totalCents: Int
     public var slices: [TagSlice]
@@ -62,14 +58,8 @@ public struct WidgetSummary: Codable, Equatable, Sendable {
 
     public static func make(summary: MonthSummary, statuses: [BudgetStatus], tags: [Tag] = [],
                             expenses: [Expense] = [], calendar: Calendar = .current, generatedAt: Date) -> WidgetSummary {
-        var slices = summary.slices
-        if slices.count > maxSlices {
-            let rest = slices[(maxSlices - 1)...]
-            let cents = rest.reduce(0) { $0 + $1.cents }
-            slices = Array(slices.prefix(maxSlices - 1))
-            slices.append(TagSlice(id: otherID, name: "Altro", colorIndex: nil, cents: cents,
-                                   fraction: rest.reduce(0) { $0 + $1.fraction }))
-        }
+        // Tutti i tag, ciascuno col suo colore: l'anello li disegna tutti, gli elenchi mostrano quelli che ci stanno.
+        let slices = summary.slices
         let tagsByID = Dictionary(tags.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let tagBudgets = statuses.compactMap { status -> TagBudgetLine? in
             guard case .tag(let id) = status.target, let tag = tagsByID[id] else { return nil }

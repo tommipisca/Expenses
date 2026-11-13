@@ -147,7 +147,7 @@ import Testing
         #expect(store.recurring[0].resumedAt == date(2026, 11, 10, 15))
     }
 
-    @Test func widgetSummaryGroupsSmallTagsIntoAltro() throws {
+    @Test func widgetSummaryKeepsEveryTag() throws {
         let store = makeStore()
         for (index, cents) in [7000, 6000, 5000, 4000, 3000, 2000, 1000].enumerated() {
             let tag = store.addTag(name: "T\(index)")
@@ -159,9 +159,9 @@ import Testing
         let summary = try #require(WidgetSummary.read(from: url))
         #expect(summary.month == MonthKey(year: 2026, month: 11))
         #expect(summary.totalCents == 28000)
-        #expect(summary.slices.map(\.name) == ["T0", "T1", "T2", "T3", "Altro"])
-        #expect(summary.slices.last?.cents == 6000)
-        #expect(summary.slices.last?.id == WidgetSummary.otherID)
+        #expect(summary.slices.map(\.name) == ["T0", "T1", "T2", "T3", "T4", "T5", "T6"])
+        #expect(summary.slices.allSatisfy { $0.colorIndex != nil })
+        #expect(summary.slices.last?.cents == 1000)
         #expect(summary.monthlyBudget?.remainingCents == 22000)
     }
 

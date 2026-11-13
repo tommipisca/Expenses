@@ -300,14 +300,19 @@ struct LargeView: View {
                 }
             }
             Rectangle().fill(Color(hex: Palette.stroke)).frame(height: 1)
-            VStack(spacing: 8) {
-                ForEach(summary.slices) { SliceRow(slice: $0) }
-                if summary.slices.isEmpty {
-                    Text("Nessuna spesa").font(.caption).foregroundStyle(WidgetTheme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            // Tutti i tag che ci stanno: si prova dal numero più alto e si scende finché entra.
+            ViewThatFits(in: .vertical) {
+                ForEach((1...max(summary.slices.count, 1)).reversed(), id: \.self) { count in
+                    VStack(spacing: 8) {
+                        ForEach(summary.slices.prefix(count)) { SliceRow(slice: $0) }
+                        if summary.slices.isEmpty {
+                            Text("Nessuna spesa").font(.caption).foregroundStyle(WidgetTheme.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        Spacer(minLength: 0)
+                    }
                 }
             }
-            Spacer(minLength: 0)
             if let budget = summary.monthlyBudget { MonthlyBudgetLine(budget: budget) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -351,7 +356,7 @@ struct ExtraLargeView: View {
                 }
                 Rectangle().fill(Color(hex: Palette.stroke)).frame(height: 1)
                 FittingList(title: "Per tag", emptyText: "Nessuna spesa questo mese",
-                            items: Array(summary.slices.filter { $0.id != WidgetSummary.otherID }.enumerated())) { _, slice in
+                            items: Array(summary.slices.enumerated())) { _, slice in
                     HStack(spacing: 8) {
                         Circle().fill(WidgetTheme.tagColor(slice.colorIndex)).frame(width: 8, height: 8)
                         Text(slice.name).font(.subheadline.weight(.medium)).lineLimit(1)

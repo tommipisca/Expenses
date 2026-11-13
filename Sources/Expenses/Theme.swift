@@ -18,7 +18,7 @@ enum Theme {
 
     static let tagPalette: [Color] = Palette.tagColors.map { Color(hex: $0) }
 
-    /// Colore di un tag; nil ("Senza tag", "Altro") è grigio.
+    /// Colore di un tag; nil ("Senza tag") è grigio.
     static func tagColor(index: Int?) -> Color {
         guard let index else { return textSecondary }
         return tagPalette[((index % tagPalette.count) + tagPalette.count) % tagPalette.count]
